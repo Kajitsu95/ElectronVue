@@ -21,28 +21,13 @@
                 @create="createPost"
             />
         </my-dialog>
-        <div v-if="!isPostsLoading" >
-            <post-list 
-                :posts="sortedSearchedPosts"
-                @remove="removePost"
-           
-            />
-            <div class="page_wrapper">
-                <div 
-                    v-for="pageNumber in totalPages" :key="pageNumber"
-                    class="page"
-                    :class="{
-                        'current_page':page === pageNumber
-                    }"
-                    @click ="changePage(pageNumber)"
-                >
-                    {{ pageNumber }}
-                </div>
-            </div>
-        </div>
-        <h4 style="color: gray" v-else>
-            Список постов загружается...
-        </h4>
+        <post-list v-if="!isPostsLoading"
+            :posts="sortedSearchedPosts"
+            @remove="removePost"
+       
+        />
+        <h4 style="color: gray" v-else>Список постов загружается...</h4>
+        <div ref="ref_observer" class="list_observer"></div>
     </div>
 </template>
 <script>
@@ -67,7 +52,7 @@ export default {
             limit: 10,
             totalPages: 0,
             sortOption: [
-                //{value: 'id', name: 'По id'},
+                {value: 'id', name: 'По id'},
                 {value: 'title', name: 'По названию'},                 
                 {value: 'body', name: 'По содержанию'},
             ],
@@ -84,9 +69,6 @@ export default {
         showDialog () {
             this.dialogVisible = true;
         },
-        changePage (pageNumber) {
-            this.page = pageNumber;
-        },
         async fetchPosts() {
             try {                
                 const responce = await axios.get('https://jsonplaceholder.typicode.com/posts', {
@@ -96,12 +78,24 @@ export default {
                     }
                 });
                 this.totalPages = Math.ceil(responce.headers['x-total-count'] / this.limit);
-                //console.log(responce);
                 this.posts = responce.data;
-                /*responce.data.forEach(element => {
-                    this.posts.push(element);
-                });*/
                 this.isPostsLoading = false;
+            }
+            catch (error) {
+                alert('Ошибка: ' + error)
+            }
+        },
+        async loadMorePosts() {
+            try {
+                this.page +=1;                
+                const responce = await axios.get('https://jsonplaceholder.typicode.com/posts', {
+                    params: {
+                        _page: this.page,
+                        _limit: this.limit
+                    }
+                });
+                this.totalPages = Math.ceil(responce.headers['x-total-count'] / this.limit);
+                this.posts = [...this.posts,...responce.data];
             }
             catch (error) {
                 alert('Ошибка: ' + error)
@@ -111,35 +105,57 @@ export default {
     mounted() {
         this.isPostsLoading = true;
         this.fetchPosts();
+        this.$nextTick(function () {
+            console.log(this.$refs.ref_observer);
+
+            const options = {
+                rootMargin: '0px',
+                threshold: 1.0,
+            };
+            const callback = (entries, observer) => {
+                
+                if (entries[0].isIntersecting && this.page < this.totalPages) {
+                    this.loadMorePosts();
+                    return observer;
+                }
+            }
+            const observer = new IntersectionObserver(callback, options);
+            observer.observe(this.$refs.ref_observer);
+        })
     },
     computed: {
         sortedPosts() {
-            return [...this.posts].sort((post1, post2) => {
-                return post1[this.selectedSort]?.localeCompare(post2[this.selectedSort])
-            })
-        },
-        sortedSearchedPosts () {
-            if (this.searchQuery == '')
-                return this.posts;
-
-            if (this.selectedSort != '') {
-                return this.sortedPosts.filter(post => post[this.selectedSort]?.toLowerCase().includes(this.searchQuery.toLowerCase()))                
+            if(this.selectedSort == 'id')
+            {
+                return [...this.posts].sort((post1, post2) => {
+                    post1.id - post2.id
+                })
             }
             else {
-                return this.sortedPosts.filter(post => post.title.toLowerCase().includes(this.searchQuery.toLowerCase()))
+                return [...this.posts].sort((post1, post2) => {
+                    return post1[this.selectedSort]?.localeCompare(post2[this.selectedSort])
+                })
+            }
+        },
+        sortedSearchedPosts () {
+            if (this.searchQuery == '' && this.selectedSort == '')
+                return this.posts;
+            else {
+                if(this.selectedSort == 'id' && this.searchQuery != '') {
+                    return this.sortedPosts.filter(post => post.id == this.searchQuery)
+                }
+                else if (this.selectedSort == 'id' && this.searchQuery == '') {
+                    return this.sortedPosts
+                }
+                else {
+                    return this.sortedPosts.filter(post => post[this.selectedSort]?.toLowerCase().includes(this.searchQuery.toLowerCase()))                
+                }                
             }
         }
     },
     // подписка на изменения
     watch: {
-        page(){
-            this.fetchPosts()
-        }
-        /*selectedSort (newValue){
-            this.posts.sort((post1, post2) => {
-                return post1[newValue]?.localeCompare(post2[newValue])
-            })
-        }*/
+
     }
 }
 </script>
@@ -161,22 +177,8 @@ h1, h2, h3, h4 {
     justify-content: space-between;
     margin: 15px 0;
 }
-.page_wrapper {
-    display: flex;
-    justify-content: center;
-    margin: 15px 0;
-}
-.page {
-    color: teal;
-    background-color: white;
-    text-transform: uppercase;
-    padding: 0 5px;
-    border: 1px solid teal;
-    border-radius: 10px;
-    margin: 5px;
-}
-.current_page {
-    background-color: teal;
-    color: white;
+.list_observer {
+    height: 30px;
+    background-color: gainsboro;
 }
 </style>
