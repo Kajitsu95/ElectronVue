@@ -21,11 +21,25 @@
                 @create="createPost"
             />
         </my-dialog>
-        <post-list 
-            :posts="sortedSearchedPosts"
-            @remove="removePost"
-            v-if="!isPostsLoading"            
-        />
+        <div v-if="!isPostsLoading" >
+            <post-list 
+                :posts="sortedSearchedPosts"
+                @remove="removePost"
+           
+            />
+            <div class="page_wrapper">
+                <div 
+                    v-for="pageNumber in totalPages" :key="pageNumber"
+                    class="page"
+                    :class="{
+                        'current_page':page === pageNumber
+                    }"
+                    @click ="changePage(pageNumber)"
+                >
+                    {{ pageNumber }}
+                </div>
+            </div>
+        </div>
         <h4 style="color: gray" v-else>
             Список постов загружается...
         </h4>
@@ -49,6 +63,9 @@ export default {
             isPostsLoading: true,
             selectedSort: '',
             searchQuery: '',
+            page: 1,
+            limit: 10,
+            totalPages: 0,
             sortOption: [
                 //{value: 'id', name: 'По id'},
                 {value: 'title', name: 'По названию'},                 
@@ -67,13 +84,23 @@ export default {
         showDialog () {
             this.dialogVisible = true;
         },
+        changePage (pageNumber) {
+            this.page = pageNumber;
+        },
         async fetchPosts() {
             try {                
-                const responce = await axios.get('https://jsonplaceholder.typicode.com/posts?_limit=10');
-                //console.log(responce);
-                responce.data.forEach(element => {
-                    this.posts.push(element);
+                const responce = await axios.get('https://jsonplaceholder.typicode.com/posts', {
+                    params: {
+                        _page: this.page,
+                        _limit: this.limit
+                    }
                 });
+                this.totalPages = Math.ceil(responce.headers['x-total-count'] / this.limit);
+                //console.log(responce);
+                this.posts = responce.data;
+                /*responce.data.forEach(element => {
+                    this.posts.push(element);
+                });*/
                 this.isPostsLoading = false;
             }
             catch (error) {
@@ -92,6 +119,9 @@ export default {
             })
         },
         sortedSearchedPosts () {
+            if (this.searchQuery == '')
+                return this.posts;
+
             if (this.selectedSort != '') {
                 return this.sortedPosts.filter(post => post[this.selectedSort]?.toLowerCase().includes(this.searchQuery.toLowerCase()))                
             }
@@ -99,15 +129,18 @@ export default {
                 return this.sortedPosts.filter(post => post.title.toLowerCase().includes(this.searchQuery.toLowerCase()))
             }
         }
-    }
+    },
     // подписка на изменения
-    /*watch: {
-        selectedSort (newValue){
+    watch: {
+        page(){
+            this.fetchPosts()
+        }
+        /*selectedSort (newValue){
             this.posts.sort((post1, post2) => {
                 return post1[newValue]?.localeCompare(post2[newValue])
             })
-        }
-    }*/
+        }*/
+    }
 }
 </script>
 <style>
@@ -127,5 +160,23 @@ h1, h2, h3, h4 {
     display: flex;
     justify-content: space-between;
     margin: 15px 0;
+}
+.page_wrapper {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+}
+.page {
+    color: teal;
+    background-color: white;
+    text-transform: uppercase;
+    padding: 0 5px;
+    border: 1px solid teal;
+    border-radius: 10px;
+    margin: 5px;
+}
+.current_page {
+    background-color: teal;
+    color: white;
 }
 </style>
