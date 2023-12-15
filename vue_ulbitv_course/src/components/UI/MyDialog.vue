@@ -1,15 +1,15 @@
 <template>
     <div class="dialog" v-if="show" @click="hideDialog">
-        <div class="dialog_content"  @click.stop>
+        <div class="dialog_content" @click.stop>
             <slot></slot>
-        </div>        
+        </div>
     </div>
 </template>
 <script>
 export default {
     name: 'my-dialog',
     props: {
-        show : {
+        show: {
             type: Boolean,
             default: false
         }
@@ -32,6 +32,7 @@ export default {
     display: flex;
 
 }
+
 .dialog_content {
     margin: auto;
     background: white;

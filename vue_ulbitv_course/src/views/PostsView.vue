@@ -1,33 +1,19 @@
 <template>
     <div>
         <h1>Страница с постами</h1>
-        <my-input 
-            placeholder="Поиск..."
-            v-model="searchQuery"
-        />
+        <my-input placeholder="Поиск..." v-model="searchQuery" />
         <div class="app_btns">
-            <my-button 
-                @click="showDialog"
-            >
+            <my-button @click="showDialog">
                 Добавить пост
             </my-button>
-            <my-select
-                v-model="selectedSort"
-                :options="sortOption"
-            />
+            <my-select v-model="selectedSort" :options="sortOption" />
         </div>
         <my-dialog v-model:show="dialogVisible">
-            <post-form            
-                @create="createPost"
-            />
+            <post-form @create="createPost" />
         </my-dialog>
-        <post-list v-if="!isPostsLoading"
-            :posts="sortedSearchedPosts"
-            @remove="removePost"
-       
-        />
+        <post-list v-if="!isPostsLoading" :posts="sortedSearchedPosts" @remove="removePost" />
         <h4 style="color: gray" v-else>Список постов загружается...</h4>
-        <div ref="ref_observer" class="list_observer"></div>
+        <div v-intersection="loadMorePosts" class="list_observer"></div>
     </div>
 </template>
 <script>
@@ -38,23 +24,24 @@ import MySelect from "@/components/UI/MySelect.vue"
 
 export default {
     components: {
-    PostList, PostForm,
-    MySelect
-},
+        PostList, PostForm,
+        MySelect
+    },
     data() {
         return {
-            posts: [ ],
+            posts: [],
             dialogVisible: false,
             isPostsLoading: true,
+            needStop: false,
             selectedSort: '',
             searchQuery: '',
             page: 1,
             limit: 10,
             totalPages: 0,
             sortOption: [
-                {value: 'id', name: 'По id'},
-                {value: 'title', name: 'По названию'},                 
-                {value: 'body', name: 'По содержанию'},
+                { value: 'id', name: 'По id' },
+                { value: 'title', name: 'По названию' },
+                { value: 'body', name: 'По содержанию' },
             ],
         }
     },
@@ -66,11 +53,11 @@ export default {
         removePost(post) {
             this.posts = this.posts.filter(p => p.id !== post.id)
         },
-        showDialog () {
+        showDialog() {
             this.dialogVisible = true;
         },
         async fetchPosts() {
-            try {                
+            try {
                 const responce = await axios.get('https://jsonplaceholder.typicode.com/posts', {
                     params: {
                         _page: this.page,
@@ -86,8 +73,11 @@ export default {
             }
         },
         async loadMorePosts() {
+            if (this.needStop)
+                return;
+
             try {
-                this.page +=1;                
+                this.page += 1;
                 const responce = await axios.get('https://jsonplaceholder.typicode.com/posts', {
                     params: {
                         _page: this.page,
@@ -95,7 +85,7 @@ export default {
                     }
                 });
                 this.totalPages = Math.ceil(responce.headers['x-total-count'] / this.limit);
-                this.posts = [...this.posts,...responce.data];
+                this.posts = [...this.posts, ...responce.data];
             }
             catch (error) {
                 alert('Ошибка: ' + error)
@@ -104,29 +94,12 @@ export default {
     },
     mounted() {
         this.isPostsLoading = true;
+        this.needStop = this.page < this.totalPages;
         this.fetchPosts();
-        this.$nextTick(function () {
-            console.log(this.$refs.ref_observer);
-
-            const options = {
-                rootMargin: '0px',
-                threshold: 1.0,
-            };
-            const callback = (entries, observer) => {
-                
-                if (entries[0].isIntersecting && this.page < this.totalPages) {
-                    this.loadMorePosts();
-                    return observer;
-                }
-            }
-            const observer = new IntersectionObserver(callback, options);
-            observer.observe(this.$refs.ref_observer);
-        })
     },
     computed: {
         sortedPosts() {
-            if(this.selectedSort == 'id')
-            {
+            if (this.selectedSort == 'id') {
                 return [...this.posts].sort((post1, post2) => {
                     post1.id - post2.id
                 })
@@ -137,19 +110,19 @@ export default {
                 })
             }
         },
-        sortedSearchedPosts () {
+        sortedSearchedPosts() {
             if (this.searchQuery == '' && this.selectedSort == '')
                 return this.posts;
             else {
-                if(this.selectedSort == 'id' && this.searchQuery != '') {
+                if (this.selectedSort == 'id' && this.searchQuery != '') {
                     return this.sortedPosts.filter(post => post.id == this.searchQuery)
                 }
                 else if (this.selectedSort == 'id' && this.searchQuery == '') {
                     return this.sortedPosts
                 }
                 else {
-                    return this.sortedPosts.filter(post => post[this.selectedSort]?.toLowerCase().includes(this.searchQuery.toLowerCase()))                
-                }                
+                    return this.sortedPosts.filter(post => post[this.selectedSort]?.toLowerCase().includes(this.searchQuery.toLowerCase()))
+                }
             }
         }
     },
@@ -165,6 +138,7 @@ export default {
     justify-content: space-between;
     margin: 15px 0;
 }
+
 .list_observer {
     height: 30px;
     background-color: gainsboro;

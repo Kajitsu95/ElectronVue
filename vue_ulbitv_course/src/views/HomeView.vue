@@ -16,9 +16,9 @@ export default {
 }
 </script>
 <style scoped>
-  .nav_bar {
-    display: flex;
-    justify-content: space-between;
-    margin: 15px 0;
-  }
+.nav_bar {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 0;
+}
 </style>

@@ -1,26 +1,16 @@
 <template>
     <form @submit.prevent>
         <h4>Создание поста</h4>
-        <my-input
-            v-model="post.title"
-            placeholder="Название"
-        ></my-input>
-        <my-input
-            v-model="post.body"
-            placeholder="Описание"
-        ></my-input>
-        <my-button 
-            class="btn"
-            style="align-self: flex-end; margin-top: 15px;" 
-            @click="createPost"
-        >
+        <my-input v-focus v-model="post.title" placeholder="Название"></my-input>
+        <my-input v-model="post.body" placeholder="Описание"></my-input>
+        <my-button class="btn" style="align-self: flex-end; margin-top: 15px;" @click="createPost">
             Создать
         </my-button>
     </form>
 </template>
 <script>
-export default{
-    data () {
+export default {
+    data() {
         return {
             post: {
                 title: '',
@@ -31,7 +21,7 @@ export default{
     methods: {
         createPost() {
             this.post.id = Date.now(),
-            this.$emit('create',this.post);
+                this.$emit('create', this.post);
             this.post = {
                 title: '',
                 body: ''
@@ -49,7 +39,6 @@ export default{
 }
 </script>
 <style scoped>
-
 form {
     display: flex;
     flex-direction: column;

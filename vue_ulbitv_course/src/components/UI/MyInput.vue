@@ -15,7 +15,7 @@ export default {
 }
 </script>
 <style>
-.input{
+.input {
     width: 100%;
     border: 1px solid teal;
     padding: 15px 10px;
